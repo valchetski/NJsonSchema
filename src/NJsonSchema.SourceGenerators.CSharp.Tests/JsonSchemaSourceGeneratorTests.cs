@@ -6,12 +6,8 @@ using static NJsonSchema.SourceGenerators.CSharp.GeneratorConfigurationKeys;
 
 namespace NJsonSchema.SourceGenerators.CSharp.Tests
 {
-    public class JsonSchemaSourceGeneratorTests : TestsBase
+    public class JsonSchemaSourceGeneratorTests(ITestOutputHelper output) : TestsBase(output)
     {
-        public JsonSchemaSourceGeneratorTests(ITestOutputHelper output) : base(output)
-        {
-        }
-
         [Fact]
         public void When_no_additional_files_specified_then_no_source_is_generated()
         {

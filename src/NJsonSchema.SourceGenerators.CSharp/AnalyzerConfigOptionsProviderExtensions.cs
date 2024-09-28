@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using H.Generators.Extensions;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using static NJsonSchema.SourceGenerators.CSharp.GeneratorConfigurationKeys;
 
@@ -19,22 +20,19 @@ namespace NJsonSchema.SourceGenerators.CSharp
            this AnalyzerConfigOptionsProvider analyzerConfigOptionsProvider,
            AdditionalText additionalText)
         {
-            var additionTextOptions = analyzerConfigOptionsProvider.GetOptions(additionalText);
-            var globalOptions = analyzerConfigOptionsProvider.GlobalOptions;
-
             return new JsonSchemaSourceGeneratorConfig(
-                        GetOptionBoolean(GenerateOptionalPropertiesAsNullable, globalOptions, additionTextOptions),
-                        GetOption(Namespace, globalOptions, additionTextOptions),
-                        GetAdditionalFileOption(TypeNameHint, additionTextOptions),
-                        GetAdditionalFileOption(FileName, additionTextOptions));
+                        analyzerConfigOptionsProvider.GetResolvedOptionBoolean(additionalText, GenerateOptionalPropertiesAsNullable),
+                        analyzerConfigOptionsProvider.GetResolvedOption(additionalText, Namespace),
+                        analyzerConfigOptionsProvider.GetOption(additionalText, TypeNameHint, prefix: Prefix),
+                        analyzerConfigOptionsProvider.GetOption(additionalText, FileName, prefix: Prefix));
         }
 
-        private static bool? GetOptionBoolean(
-            string key,
-            AnalyzerConfigOptions globalOptions,
-            AnalyzerConfigOptions additionTextOptions)
+        private static bool? GetResolvedOptionBoolean(
+            this AnalyzerConfigOptionsProvider provider,
+            AdditionalText additionalText,
+            string key)
         {
-            var option = GetOption(key, globalOptions, additionTextOptions);
+            var option = GetResolvedOption(provider, additionalText, key);
 
             if (bool.TryParse(option, out bool result))
             {
@@ -44,28 +42,12 @@ namespace NJsonSchema.SourceGenerators.CSharp
             return null;
         }
 
-        private static string? GetOption(
-            string key,
-            AnalyzerConfigOptions globalOptions,
-            AnalyzerConfigOptions additionTextOptions)
+        private static string? GetResolvedOption(
+            this AnalyzerConfigOptionsProvider provider,
+            AdditionalText additionalText,
+            string key)
         {
-            return GetAdditionalFileOption(key, additionTextOptions) ?? GetGlobalOption(key, globalOptions);
-        }
-
-        private static string? GetGlobalOption(
-            string key,
-            AnalyzerConfigOptions globalOptions)
-        {
-            globalOptions.TryGetValue($"build_property.{key}", out var value);
-            return value;
-        }
-
-        private static string? GetAdditionalFileOption(
-            string key,
-            AnalyzerConfigOptions additionTextOptions)
-        {
-            additionTextOptions.TryGetValue($"build_metadata.AdditionalFiles.{key}", out var value);
-            return value;
+            return provider.GetOption(additionalText, key, prefix: Prefix) ?? provider.GetGlobalOption(key, Prefix);
         }
     }
 }

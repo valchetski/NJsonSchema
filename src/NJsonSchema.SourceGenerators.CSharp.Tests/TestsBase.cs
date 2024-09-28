@@ -17,17 +17,11 @@ namespace NJsonSchema.SourceGenerators.CSharp.Tests
     /// <summary>
     /// Helps with AdditionalFiles by exposing them as text files.
     /// </summary>
-    public class AdditionalTextStub : AdditionalText
+    public class AdditionalTextStub(string path, Dictionary<string, string> options = null) : AdditionalText
     {
-        private readonly string _path;
+        private readonly string _path = path;
 
-        public AdditionalTextStub(string path, Dictionary<string, string> options = null)
-        {
-            _path = path;
-            Options = options;
-        }
-
-        public Dictionary<string, string> Options { get; }
+        public Dictionary<string, string> Options { get; } = options;
 
         public override string Path
         {
@@ -43,16 +37,11 @@ namespace NJsonSchema.SourceGenerators.CSharp.Tests
         }
     }
 
-    public abstract class TestsBase
+    public abstract class TestsBase(ITestOutputHelper output)
     {
-        protected readonly ITestOutputHelper _output;
+        protected readonly ITestOutputHelper _output = output;
         private static List<MetadataReference> _metadataReferences;
-        private static readonly object Lock = new object();
-
-        protected TestsBase(ITestOutputHelper output)
-        {
-            _output = output;
-        }
+        private static readonly object Lock = new();
 
         /// <summary>
         /// Retrieves and caches referenced assemblies, so that tested compilations can make use of them.
@@ -65,7 +54,7 @@ namespace NJsonSchema.SourceGenerators.CSharp.Tests
                 {
                     if (_metadataReferences == null)
                     {
-                        _metadataReferences = new List<MetadataReference>();
+                        _metadataReferences = [];
                         Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
                         foreach (var assembly in assemblies)
                         {
@@ -112,7 +101,7 @@ namespace NJsonSchema.SourceGenerators.CSharp.Tests
                 }
 
                 // Actually invoke the method and return the result
-                var resultObj = method.Invoke(null, Array.Empty<object>());
+                var resultObj = method.Invoke(null, []);
                 if (resultObj is not string stringResult)
                 {
                     return "-- result was not a string --";
@@ -188,17 +177,11 @@ namespace NJsonSchema.SourceGenerators.CSharp.Tests
         }
     }
 
-    public class TestAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
+    public class TestAnalyzerConfigOptionsProvider(
+        IEnumerable<AdditionalTextStub> additionalTexts,
+        Dictionary<string, string> globalOptions = null) : AnalyzerConfigOptionsProvider
     {
-        private readonly IEnumerable<AdditionalTextStub> _additionalTexts;
-
-        public TestAnalyzerConfigOptionsProvider(
-            IEnumerable<AdditionalTextStub> additionalTexts,
-            Dictionary<string, string> globalOptions = null)
-        {
-            GlobalOptions = new GlobalTestAnalyzerConfigOptions(globalOptions);
-            _additionalTexts = additionalTexts;
-        }
+        private readonly IEnumerable<AdditionalTextStub> _additionalTexts = additionalTexts;
 
         public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => new AdditionalFilesTestAnalyzerConfigOptions();
 
@@ -207,34 +190,25 @@ namespace NJsonSchema.SourceGenerators.CSharp.Tests
             return new AdditionalFilesTestAnalyzerConfigOptions(_additionalTexts.FirstOrDefault(x => x.Path == textFile.Path).Options);
         }
 
-        public override AnalyzerConfigOptions GlobalOptions { get; }
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new GlobalTestAnalyzerConfigOptions(globalOptions);
 
-        private abstract class TestAnalyzerConfigOptions : AnalyzerConfigOptions
+        private abstract class TestAnalyzerConfigOptions(Dictionary<string, string> options = null) : AnalyzerConfigOptions
         {
-            private readonly Dictionary<string, string> _options;
-
-            protected TestAnalyzerConfigOptions(Dictionary<string, string> options = null)
-            {
-                _options = options ?? [];
-            }
+            private readonly Dictionary<string, string> _options = options ?? [];
 
             public override bool TryGetValue(string key, out string value) => _options.TryGetValue(key, out value);
         }
 
-        private class AdditionalFilesTestAnalyzerConfigOptions : TestAnalyzerConfigOptions
+        private class AdditionalFilesTestAnalyzerConfigOptions(Dictionary<string, string> options = null)
+            : TestAnalyzerConfigOptions(options?
+                .ToDictionary(x => $"build_metadata.AdditionalFiles.{GeneratorConfigurationKeys.Prefix}_" + x.Key, y => y.Value))
         {
-            public AdditionalFilesTestAnalyzerConfigOptions(Dictionary<string, string> options = null)
-                : base(options?.Select(x => ("build_metadata.AdditionalFiles." + x.Key, x.Value)).ToDictionary(pair => pair.Item1, p => p.Value))
-            {
-            }
         }
 
-        private class GlobalTestAnalyzerConfigOptions : TestAnalyzerConfigOptions
+        private class GlobalTestAnalyzerConfigOptions(Dictionary<string, string> options)
+            : TestAnalyzerConfigOptions(options?
+                .ToDictionary(x => $"build_property.{GeneratorConfigurationKeys.Prefix}_" + x.Key, y => y.Value))
         {
-            public GlobalTestAnalyzerConfigOptions(Dictionary<string, string> options)
-                : base(options?.Select(x => ("build_property." + x.Key, x.Value)).ToDictionary(pair => pair.Item1, p => p.Value))
-            {
-            }
         }
     }
 }
