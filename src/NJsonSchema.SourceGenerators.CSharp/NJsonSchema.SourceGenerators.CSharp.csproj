@@ -38,19 +38,4 @@
     <None Include="NuGetIcon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
     
-  <PropertyGroup>
-    <GetTargetPathDependsOn>
-        $(GetTargetPathDependsOn);GetDependencyTargetPaths
-    </GetTargetPathDependsOn>
-  </PropertyGroup>
-
-  <Target Name="GetDependencyTargetPaths">
-    <ItemGroup>
-        <TargetPathWithTargetPlatformMoniker Include="$(OutputPath)\NJsonSchema.dll" IncludeRuntimeDependency="false" />
-        <TargetPathWithTargetPlatformMoniker Include="$(OutputPath)\NJsonSchema.Annotations.dll" IncludeRuntimeDependency="false" />
-        <TargetPathWithTargetPlatformMoniker Include="$(OutputPath)\NJsonSchema.CodeGeneration.dll" IncludeRuntimeDependency="false" />
-        <TargetPathWithTargetPlatformMoniker Include="$(OutputPath)\NJsonSchema.CodeGeneration.CSharp.dll" IncludeRuntimeDependency="false" />
-    </ItemGroup>
-  </Target>
-
 </Project>
